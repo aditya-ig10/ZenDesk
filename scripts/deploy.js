@@ -1,15 +1,18 @@
 const hre = require("hardhat");
 
 async function main() {
-  const ZendeskNFT = await hre.ethers.getContractFactory("ZendeskNFT");
-  const zendeskNFT = await ZendeskNFT.deploy();
-  await zendeskNFT.deployed();
-  console.log("ZendeskNFT deployed to:", zendeskNFT.address);
+  const [deployer] = await hre.ethers.getSigners();
 
-  const UserAuth = await hre.ethers.getContractFactory("UserAuth");
-  const userAuth = await UserAuth.deploy();
-  await userAuth.deployed();
-  console.log("UserAuth deployed to:", userAuth.address);
+  console.log("Deploying contracts with the account:", deployer.address);
+
+  const ZendeskNFT = await hre.ethers.getContractFactory("ZendeskNFT");
+  
+  // Pass the deployer's address as the initial owner
+  const zendeskNFT = await ZendeskNFT.deploy(deployer.address);
+
+  await zendeskNFT.deployed();
+
+  console.log("ZendeskNFT deployed to:", zendeskNFT.address);
 }
 
 main()
