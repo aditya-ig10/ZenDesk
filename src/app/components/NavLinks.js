@@ -76,14 +76,14 @@ const NavLinks = () => {
       >
         Marketplace
       </NavLink>
-      <NavLink 
+      {/* <NavLink 
         onClick={() => handleNavigation('sepolia')} 
         whileHover={{ scale: 1.05 }} 
         whileTap={{ scale: 0.95 }}
         isActive={pathname === '/sepolia'}
       >
         Sepolia Testnet
-      </NavLink>
+      </NavLink> */}
       <NavLink 
         onClick={() => handleNavigation('tokens')} 
         whileHover={{ scale: 1.05 }} 

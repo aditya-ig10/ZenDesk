@@ -1,61 +1,63 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/utils/Counters.sol";
 
-contract ZendeskNFT is ERC721, Ownable {
-    IERC20 public tokenContract;
-    uint256 private _tokenIds;
-    uint256 public constant TOKENS_PER_ETH = 200;
 
-    struct NFT {
-        string name;
-        uint256 price;
-        address seller;
-    }
+contract ZendeskNFT is ERC721URIStorage, Ownable {
+    using Counters for Counters.Counter;
+    Counters.Counter private _tokenIds;
 
-    mapping(uint256 => NFT) public nfts;
-    mapping(address => bool) public verifiedUsers;
+    mapping(uint256 => uint256) private _tokenPrices;
 
-    event NFTCreated(uint256 tokenId, string name, uint256 price, address seller);
-    event NFTSold(uint256 tokenId, address buyer, address seller, uint256 price);
+    constructor() ERC721("ZendeskNFT", "ZNFT") {}
 
-    constructor(address _tokenContract) ERC721("ZendeskNFT", "ZNFT") Ownable(msg.sender) {
-        tokenContract = IERC20(_tokenContract);
-    }
-
-    function verifyUser(address user) external onlyOwner {
-        verifiedUsers[user] = true;
-    }
-
-    function createNFT(string memory name, uint256 price) external returns (uint256) {
-        require(verifiedUsers[msg.sender], "User not verified");
-        _tokenIds++;
-        uint256 newTokenId = _tokenIds;
+    function mintNFT(string memory tokenURI, uint256 price) public onlyOwner returns (uint256) {
+        _tokenIds.increment();
+        uint256 newTokenId = _tokenIds.current();
         _safeMint(msg.sender, newTokenId);
-        nfts[newTokenId] = NFT(name, price, msg.sender);
-        emit NFTCreated(newTokenId, name, price, msg.sender);
+        _setTokenURI(newTokenId, tokenURI);
+        _tokenPrices[newTokenId] = price;  // Set the price for the new NFT
         return newTokenId;
     }
 
-    function buyNFT(uint256 tokenId) external {
-        NFT memory nft = nfts[tokenId];
-        require(nft.seller != address(0), "NFT does not exist");
-        require(msg.sender != nft.seller, "Cannot buy your own NFT");
-        
-        uint256 tokenAmount = nft.price * TOKENS_PER_ETH;
-        require(tokenContract.balanceOf(msg.sender) >= tokenAmount, "Insufficient tokens");
-        
-        tokenContract.transferFrom(msg.sender, nft.seller, tokenAmount);
-        _transfer(nft.seller, msg.sender, tokenId);
-        
-        emit NFTSold(tokenId, msg.sender, nft.seller, nft.price);
-        delete nfts[tokenId];
+    function getPrice(uint256 tokenId) public view returns (uint256) {
+        require(_exists(tokenId), "Token does not exist");
+        return _tokenPrices[tokenId];
     }
 
-    function getNFT(uint256 tokenId) external view returns (NFT memory) {
-        return nfts[tokenId];
+    function buyNFT(uint256 tokenId) public payable {
+        require(_exists(tokenId), "Token does not exist");
+        uint256 price = _tokenPrices[tokenId];
+        require(msg.value >= price, "Insufficient payment");
+
+        address owner = ownerOf(tokenId);
+        require(msg.sender != owner, "Cannot buy your own NFT");
+
+        // Transfer the token to the buyer
+        _safeTransfer(owner, msg.sender, tokenId);
+
+        // Transfer the payment to the seller
+        payable(owner).transfer(price);
+
+        // Refund any excess payment
+        if (msg.value > price) {
+            payable(msg.sender).transfer(msg.value - price);
+        }
+
+        // Remove the price of the NFT after purchase
+        delete _tokenPrices[tokenId];
+    }
+
+    function totalSupply() public view returns (uint256) {
+        return _tokenIds.current();
+    }
+
+    function setPrice(uint256 tokenId, uint256 price) public {
+        require(ownerOf(tokenId) == msg.sender, "Not the owner of the token");
+        _tokenPrices[tokenId] = price;
     }
 }

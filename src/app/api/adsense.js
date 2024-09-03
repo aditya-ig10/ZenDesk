@@ -1,46 +1,67 @@
-import { google } from 'googleapis';
-import { connectToDatabase } from '../../utils/dbConnect';
+import { NextResponse } from 'next/server';
+   import { google } from 'googleapis';
+   import { connectToDatabase } from '../../../utils/dbConnect';
 
-const oauth2Client = new google.auth.OAuth2(
-  process.env.GOOGLE_CLIENT_ID,
-  process.env.GOOGLE_CLIENT_SECRET,
-  'http://localhost:3000/api/adsense/callback'
-);
+   const oauth2Client = new google.auth.OAuth2(
+     process.env.GOOGLE_CLIENT_ID,
+     process.env.GOOGLE_CLIENT_SECRET,
+     process.env.REDIRECT_URI
+   );
 
-export default async function handler(req, res) {
-  if (req.method === 'GET') {
-    const db = await connectToDatabase();
-    const user = await db.collection('users').findOne({ email: req.query.email });
+   export async function GET(request) {
+     const { searchParams } = new URL(request.url);
+     const email = searchParams.get('email');
 
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
+     if (!email) {
+       return NextResponse.json({ error: 'Email is required' }, { status: 400 });
+     }
 
-    if (!user.adsenseToken) {
-      const authUrl = oauth2Client.generateAuthUrl({
-        access_type: 'offline',
-        scope: ['https://www.googleapis.com/auth/adsense.readonly']
-      });
-      return res.status(200).json({ authUrl });
-    }
+     try {
+       console.log('Fetching data for email:', email);
+       const db = await connectToDatabase();
+       const user = await db.collection('users').findOne({ email });
 
-    oauth2Client.setCredentials(user.adsenseToken);
-    const adsense = google.adsense({ version: 'v2', auth: oauth2Client });
+       if (!user) {
+         console.log('User not found');
+         return NextResponse.json({ error: 'User not found' }, { status: 404 });
+       }
 
-    try {
-      const response = await adsense.accounts.reports.generate({
-        account: 'accounts/YOUR_ACCOUNT_ID',
-        dateRange: 'LAST_7_DAYS',
-        metrics: ['IMPRESSIONS', 'CLICKS', 'EARNINGS']
-      });
+       console.log('User found:', user);
 
-      return res.status(200).json(response.data);
-    } catch (error) {
-      console.error('Error fetching AdSense data:', error);
-      return res.status(500).json({ error: 'Error fetching AdSense data' });
-    }
-  } else {
-    res.setHeader('Allow', ['GET']);
-    res.status(405).end(`Method ${req.method} Not Allowed`);
-  }
-}
+       if (!user.adsenseToken) {
+         console.log('AdSense token not found');
+         return NextResponse.json({ error: 'User not authenticated with AdSense' }, { status: 401 });
+       }
+
+       oauth2Client.setCredentials(user.adsenseToken);
+
+       const adsense = google.adsense({ version: 'v2', auth: oauth2Client });
+
+       const accounts = await adsense.accounts.list();
+       console.log('AdSense accounts:', accounts.data);
+       
+       if (!accounts.data.accounts || accounts.data.accounts.length === 0) {
+         console.log('No AdSense account found');
+         return NextResponse.json({ error: 'No AdSense account found for this user' }, { status: 404 });
+       }
+
+       const accountId = accounts.data.accounts[0].name;
+
+       const report = await adsense.accounts.reports.generate({
+         account: accountId,
+         dateRange: 'LAST_7_DAYS',
+         metrics: ['IMPRESSIONS', 'CLICKS', 'EARNINGS'],
+       });
+
+       console.log('AdSense report:', report.data);
+
+       return NextResponse.json(report.data);
+     } catch (error) {
+       console.error('AdSense API error:', error);
+       return NextResponse.json({ 
+         error: 'Internal Server Error', 
+         message: error.message,
+         stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+       }, { status: 500 });
+     }
+   }
