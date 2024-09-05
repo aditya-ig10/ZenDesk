@@ -9,7 +9,7 @@ import logo from '../logo.png';
 import { ethers } from 'ethers';
 import NavLinks from '../components/NavLinks';
 import NFTCard from '../components/NFTCard';
-import ZendeskNFTABI from '../contracts/ZendeskNFT.json';
+import ZendeskNFTABI from '../../../contracts/ZendeskNFT.json';
 
 const Container = styled(motion.div)`
   min-height: 100vh;
@@ -82,42 +82,98 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 }
 };
 
+const Loader = styled.div`
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #3498db;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin: 20px auto;
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`;
+
+const ErrorMessage = styled.p`
+  color: #ff4d6d;
+  text-align: center;
+  margin-top: 20px;
+`;
+
 export default function MarketplacePage() {
   const router = useRouter();
   const [nfts, setNFTs] = useState([]);
   const [walletAddress, setWalletAddress] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [provider, setProvider] = useState(null);
+  const [signer, setSigner] = useState(null);
 
   useEffect(() => {
-    const storedAddress = localStorage.getItem('connectedAddress');
-    if (storedAddress) {
-      setWalletAddress(storedAddress);
-      fetchNFTs();
-    } else {
-      router.push('/'); // Redirect to home if no wallet address is found
-    }
+    const connectWallet = async () => {
+      if (typeof window.ethereum !== 'undefined') {
+        try {
+          await window.ethereum.request({ method: 'eth_requestAccounts' });
+          const provider = new ethers.providers.Web3Provider(window.ethereum);
+          const signer = provider.getSigner();
+          const address = await signer.getAddress();
+          setProvider(provider);
+          setSigner(signer);
+          setWalletAddress(address);
+          localStorage.setItem('connectedAddress', address);
+          fetchNFTs();
+        } catch (error) {
+          console.error('Error connecting to Metamask:', error);
+          setError('Failed to connect to Metamask. Please try again.');
+        }
+      } else {
+        setError('Metamask not detected. Please install Metamask to use this application.');
+      }
+    };
+
+    connectWallet();
   }, []);
 
   const fetchNFTs = async () => {
+    setIsLoading(true);
+    setError(null);
     try {
       const response = await fetch('/api/nfts');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       const data = await response.json();
       setNFTs(data.nfts);
     } catch (error) {
       console.error('Error fetching NFTs:', error);
+      setError('Failed to fetch NFTs. Please try again later.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handlePurchase = async (tokenId, price) => {
     try {
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
-      const signer = provider.getSigner();
+      if (!signer) {
+        throw new Error('Wallet not connected');
+      }
+      
       const contract = new ethers.Contract(process.env.NEXT_PUBLIC_ZENDESK_NFT_CONTRACT_ADDRESS, ZendeskNFTABI.abi, signer);
 
       const tx = await contract.purchaseNFT(tokenId, { value: ethers.utils.parseEther(price) });
       await tx.wait();
 
       alert('NFT purchased successfully!');
-      fetchNFTs(); // Refresh the NFT list
+      fetchNFTs();
+      
+      // Store purchased NFT info in localStorage
+      const purchasedNFTs = JSON.parse(localStorage.getItem('purchasedNFTs') || '[]');
+      purchasedNFTs.push({ tokenId, price });
+      localStorage.setItem('purchasedNFTs', JSON.stringify(purchasedNFTs));
+      
     } catch (error) {
       console.error('Error purchasing NFT:', error);
       alert('Error purchasing NFT. Please try again.');
@@ -149,15 +205,21 @@ export default function MarketplacePage() {
       </Header>
       <MainContent>
         <Title variants={itemVariants}>NFT Marketplace</Title>
-        <NFTGrid>
-          {nfts.map((nft) => (
-            <NFTCard
-              key={nft.tokenId}
-              nft={nft}
-              onPurchase={() => handlePurchase(nft.tokenId, nft.price)}
-            />
-          ))}
-        </NFTGrid>
+        {isLoading ? (
+          <Loader />
+        ) : error ? (
+          <ErrorMessage>{error}</ErrorMessage>
+        ) : (
+          <NFTGrid>
+            {nfts.map((nft) => (
+              <NFTCard
+                key={nft.tokenId}
+                nft={nft}
+                onPurchase={() => handlePurchase(nft.tokenId, nft.price)}
+              />
+            ))}
+          </NFTGrid>
+        )}
       </MainContent>
     </Container>
   );

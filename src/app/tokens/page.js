@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
@@ -14,6 +14,8 @@ import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import MovieIcon from '@mui/icons-material/Movie';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+import AdSense from '../components/AdSense';
+import AdBanner from '../components/AdBanner';
 
 // Dynamically import chart components to avoid SSR issues
 const Bar = dynamic(() => import('react-chartjs-2').then(mod => mod.Bar), { ssr: false });
@@ -85,25 +87,33 @@ export default function EnhancedTokensDashboard() {
   const [tokenHistory, setTokenHistory] = useState([65, 59, 80, 81, 56, 55]);
   const [performanceMetrics, setPerformanceMetrics] = useState([65, 59, 90, 81, 56]);
   const [darkMode, setDarkMode] = useState(true);
+  const [adWatched, setAdWatched] = useState(false);
 
   useEffect(() => {
-    // Simulating data fetching
     const fetchData = async () => {
       // In a real app, you would fetch data from your API here
     };
     fetchData();
   }, []);
 
-  const handleWatchAd = () => {
-    setUserTokens(prev => prev + 1);
-    setAdPerformance(prev => ({
-      ...prev,
-      impressions: prev.impressions + 1,
-      clicks: prev.clicks + 1,
-      earnings: +(prev.earnings + 0.5).toFixed(2)
-    }));
-    setTokenHistory(prev => [...prev.slice(1), userTokens + 1]);
-  };
+  const handleWatchAd = useCallback(() => {
+    // Show the ad
+    setAdWatched(true);
+    
+    // Simulate ad completion after 10 seconds
+    setTimeout(() => {
+      setUserTokens(prev => prev + 1);
+      setAdPerformance(prev => ({
+        ...prev,
+        impressions: prev.impressions + 1,
+        clicks: prev.clicks + 1,
+        earnings: +(prev.earnings + 0.5).toFixed(2)
+      }));
+      setTokenHistory(prev => [...prev.slice(1), userTokens + 1]);
+      setAdWatched(false);
+    }, 10000);
+  }, [userTokens]);
+
 
   const handleBuyTokens = (amount) => {
     setUserTokens(prev => prev + amount);
@@ -196,6 +206,7 @@ export default function EnhancedTokensDashboard() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
+      <AdSense pId="3224167902119761" />
       <AppBar position="sticky">
         <Toolbar>
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
@@ -210,7 +221,7 @@ export default function EnhancedTokensDashboard() {
       </AppBar>
       <Container maxWidth="lg" sx={{ py: 4 }}>
         <Grid container spacing={3}>
-          <Grid item xs={12} md={4}>
+        <Grid item xs={12} md={4}>
             <Paper elevation={3} sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <Typography variant="h6" align="center" gutterBottom>Your Tokens</Typography>
               <AnimatedNumber
@@ -275,14 +286,18 @@ export default function EnhancedTokensDashboard() {
             </Paper>
           </Grid>
 
-          <Grid item xs={12}>
-            <Paper elevation={3} sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>Performance Metrics</Typography>
-              <Box height={400}>
-                <Radar data={radarData} options={{...chartOptions, scales: undefined}} />
-              </Box>
-            </Paper>
-          </Grid>
+          {adWatched && (
+            <Grid item xs={12}>
+              <Paper elevation={3} sx={{ p: 2 }}>
+                <Typography variant="h6" gutterBottom>Advertisement</Typography>
+                <AdBanner
+                  dataAdSlot="1234567890"
+                  dataAdFormat="auto"
+                  dataFullWidthResponsive={true}
+                />
+              </Paper>
+            </Grid>
+          )}
         </Grid>
       </Container>
     </ThemeProvider>

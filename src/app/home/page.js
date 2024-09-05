@@ -8,6 +8,7 @@ import Image from 'next/image';
 import logo from '../logo.png';
 import { ethers } from 'ethers';
 import NavLinks from '../components/NavLinks';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const Container = styled(motion.div)`
   min-height: 100vh;
@@ -113,9 +114,43 @@ const itemVariants = {
 };
 
 
+const Dashboard = styled(motion.div)`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+`;
+
+const DashboardCard = styled(Card)`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+`;
+
+const NFTGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 2rem;
+`;
+
+const NFTCard = styled(motion.div)`
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 10px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
+
 export default function HomePage() {
   const [address, setAddress] = useState('');
   const [balance, setBalance] = useState('');
+  const [purchasedNFTs, setPurchasedNFTs] = useState([]);
+  const [nftGrowthData, setNftGrowthData] = useState([]);
   const router = useRouter();
 
   useEffect(() => {
@@ -123,6 +158,8 @@ export default function HomePage() {
     if (connectedAddress) {
       setAddress(connectedAddress);
       fetchBalance(connectedAddress);
+      fetchPurchasedNFTs();
+      generateNFTGrowthData();
     } else {
       router.push('/');
     }
@@ -134,6 +171,20 @@ export default function HomePage() {
       const balance = await provider.getBalance(address);
       setBalance(ethers.utils.formatEther(balance));
     }
+  };
+
+  const fetchPurchasedNFTs = () => {
+    const nfts = JSON.parse(localStorage.getItem('purchasedNFTs') || '[]');
+    setPurchasedNFTs(nfts);
+  };
+
+  const generateNFTGrowthData = () => {
+    const nfts = JSON.parse(localStorage.getItem('purchasedNFTs') || '[]');
+    const growthData = nfts.reduce((acc, nft, index) => {
+      acc.push({ name: `Day ${index + 1}`, NFTs: index + 1 });
+      return acc;
+    }, []);
+    setNftGrowthData(growthData);
   };
 
   return (
@@ -163,35 +214,36 @@ export default function HomePage() {
           <br />
           Available Balance: {balance} ETH
         </Subtitle>
-        <AnimatePresence>
-          <Card
-            variants={itemVariants}
-            initial="hidden"
-            animate="visible"
-            exit={{ opacity: 0, y: -20 }}
-          >
-            <h2>Your Dashboard</h2>
-            <p>Here you can view your NFTs, manage your wallet, and explore the marketplace.</p>
-          </Card>
-          <Card
-            variants={itemVariants}
-            initial="hidden"
-            animate="visible"
-            exit={{ opacity: 0, y: -20 }}
-          >
-            <h2>Recent Activity</h2>
-            <p>View your recent transactions and NFT purchases.</p>
-          </Card>
-          <Card
-            variants={itemVariants}
-            initial="hidden"
-            animate="visible"
-            exit={{ opacity: 0, y: -20 }}
-          >
-            <h2>Featured NFTs</h2>
-            <p>Discover trending and popular NFTs in the marketplace.</p>
-          </Card>
-        </AnimatePresence>
+        <Dashboard>
+          <DashboardCard variants={itemVariants}>
+            <h2>NFTs Owned</h2>
+            <p>{purchasedNFTs.length}</p>
+          </DashboardCard>
+          <DashboardCard variants={itemVariants}>
+            <h2>NFT Growth</h2>
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart data={nftGrowthData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line type="monotone" dataKey="NFTs" stroke="#8884d8" />
+              </LineChart>
+            </ResponsiveContainer>
+          </DashboardCard>
+        </Dashboard>
+        <Card variants={itemVariants}>
+          <h2>Your NFTs</h2>
+          <NFTGrid>
+            {purchasedNFTs.map((nft, index) => (
+              <NFTCard key={index} variants={itemVariants}>
+                <h3>Token ID: {nft.tokenId}</h3>
+                <p>Price: {nft.price} ETH</p>
+              </NFTCard>
+            ))}
+          </NFTGrid>
+        </Card>
       </MainContent>
     </Container>
   );
