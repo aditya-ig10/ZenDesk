@@ -1,0 +1,125 @@
+.nft-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: all 0.3s ease;
+    overflow: hidden;
+    position: relative;
+    height: 400px;
+  }
+  
+  .nft-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+  }
+  
+  .image-container {
+    width: 100%;
+    height: 250px;
+    position: relative;
+    overflow: hidden;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+  }
+  
+  .image-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  
+  .nft-name {
+    font-size: 1.3rem;
+    margin-bottom: 0.5rem;
+    text-align: center;
+    font-weight: 600;
+  }
+  
+  .price-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+  }
+  
+  .price {
+    font-size: 1.2rem;
+    color: #4d79ff;
+    font-weight: bold;
+    margin-left: 0.5rem;
+  }
+  
+  .purchase-button {
+    background: #4d79ff;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 25px;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 0.9rem;
+    margin-top: 1rem;
+  }
+  
+  .purchase-button:hover {
+    background: #3a5ac2;
+  }
+  
+  .token-id {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    padding: 0.3rem 0.6rem;
+    border-radius: 15px;
+    font-size: 0.8rem;
+  }
+  
+  .hover-details {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 1rem;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  .nft-card:hover .hover-details {
+    opacity: 1;
+  }
+  
+  .detail-item {
+    color: white;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    text-align: center;
+  }
+  
+  .collection-name {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #4d79ff;
+    margin-bottom: 0.5rem;
+  }
+  
+  .description {
+    font-style: italic;
+    margin-bottom: 1rem;
+    color: white;
+    text-align: center;
+  }

@@ -1,0 +1,145 @@
+.container {
+    min-height: 100vh;
+    color: white;
+    font-family: 'Poppins', sans-serif;
+    position: relative;
+    z-index: 2;
+    background: linear-gradient(to bottom, #0a0015, #1a0030);
+  }
+  
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 3rem;
+    background-color: rgba(10, 0, 21, 0.8);
+    backdrop-filter: blur(10px);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  
+  .logo {
+    font-size: 1.5rem;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  
+  .nav {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+  }
+  
+  .main-content {
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  
+  .title {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    background: linear-gradient(45deg, #ff4d6d, #4d79ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  
+  .nft-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+  }
+  
+  .loader {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid #3498db;
+    margin: 20px auto;
+  }
+  
+  .error-message {
+    color: #ff4d6d;
+    text-align: center;
+    margin-top: 20px;
+  }
+  
+  .search-bar {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 20px;
+    border: none;
+    border-radius: 5px;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 16px;
+  }
+  
+  .search-bar::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+  }
+  
+  .popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  
+  .popup {
+    background-color: #1a0030;
+    padding: 2rem;
+    border-radius: 10px;
+    width: 300px;
+  }
+  
+  .popup h2 {
+    margin-top: 0;
+  }
+  
+  .popup select {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 1rem;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: none;
+    border-radius: 5px;
+  }
+  
+  .popup-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 1rem;
+  }
+  
+  .popup-buttons button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  
+  .popup-buttons button:first-child {
+    background-color: #4d79ff;
+    color: white;
+  }
+  
+  .popup-buttons button:last-child {
+    background-color: #ff4d6d;
+    color: white;
+  }
+  
+  .popup-buttons button:hover {
+    opacity: 0.8;
+  }

@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState, useEffect } from 'react';
-import styled from '@emotion/styled';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -10,60 +9,7 @@ import { ethers } from 'ethers';
 import NavLinks from '../components/NavLinks';
 import NFTCard from '../components/NFTCard';
 import ZendeskNFTABI from '../../../contracts/ZendeskNFT.json';
-
-const Container = styled(motion.div)`
-  min-height: 100vh;
-  color: white;
-  font-family: 'Poppins', sans-serif;
-  position: relative;
-  z-index: 2;
-  background: linear-gradient(to bottom, #0a0015, #1a0030);
-`;
-
-const Header = styled(motion.header)`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 3rem;
-  background-color: rgba(10, 0, 21, 0.8);
-  backdrop-filter: blur(10px);
-  position: sticky;
-  top: 0;
-  z-index: 10;
-`;
-
-const Logo = styled(motion.div)`
-  font-size: 1.5rem;
-  font-weight: bold;
-  cursor: pointer;
-`;
-
-const Nav = styled.nav`
-  display: flex;
-  gap: 1.5rem;
-  align-items: center;
-`;
-
-const MainContent = styled(motion.main)`
-  padding: 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
-`;
-
-const Title = styled(motion.h1)`
-  font-size: 2.5rem;
-  margin-bottom: 1rem;
-  background: linear-gradient(45deg, #ff4d6d, #4d79ff);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-`;
-
-const NFTGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 2rem;
-  margin-top: 2rem;
-`;
+import './MarketplacePage.css'; // Make sure to create this CSS file
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -82,35 +28,30 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 }
 };
 
-const Loader = styled.div`
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #3498db;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  animation: spin 1s linear infinite;
-  margin: 20px auto;
-
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+const loaderVariants = {
+  animate: {
+    rotate: 360,
+    transition: {
+      loop: Infinity,
+      ease: "linear",
+      duration: 1
+    }
   }
-`;
-
-const ErrorMessage = styled.p`
-  color: #ff4d6d;
-  text-align: center;
-  margin-top: 20px;
-`;
+};
 
 export default function MarketplacePage() {
   const router = useRouter();
   const [nfts, setNFTs] = useState([]);
+  const [filteredNFTs, setFilteredNFTs] = useState([]);
   const [walletAddress, setWalletAddress] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [provider, setProvider] = useState(null);
   const [signer, setSigner] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedToken, setSelectedToken] = useState('ETH');
+  const [showPopup, setShowPopup] = useState(false);
+  const [selectedNFT, setSelectedNFT] = useState(null);
 
   useEffect(() => {
     const connectWallet = async () => {
@@ -137,6 +78,14 @@ export default function MarketplacePage() {
     connectWallet();
   }, []);
 
+  useEffect(() => {
+    const filtered = nfts.filter(nft => 
+      nft.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      nft.description.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    setFilteredNFTs(filtered);
+  }, [searchTerm, nfts]);
+
   const fetchNFTs = async () => {
     setIsLoading(true);
     setError(null);
@@ -147,6 +96,7 @@ export default function MarketplacePage() {
       }
       const data = await response.json();
       setNFTs(data.nfts);
+      setFilteredNFTs(data.nfts);
     } catch (error) {
       console.error('Error fetching NFTs:', error);
       setError('Failed to fetch NFTs. Please try again later.');
@@ -163,10 +113,16 @@ export default function MarketplacePage() {
       
       const contract = new ethers.Contract(process.env.NEXT_PUBLIC_ZENDESK_NFT_CONTRACT_ADDRESS, ZendeskNFTABI.abi, signer);
 
-      const tx = await contract.purchaseNFT(tokenId, { value: ethers.utils.parseEther(price) });
-      await tx.wait();
+      // Convert price to wei
+      const priceInWei = ethers.utils.parseEther(price);
 
-      alert('NFT purchased successfully!');
+      // Create transaction request
+      const tx = await contract.purchaseNFT(tokenId, { value: priceInWei });
+
+      // Open Metamask for confirmation
+      await signer.sendTransaction(tx);
+
+      alert('NFT purchase transaction sent. Please check your wallet for confirmation.');
       fetchNFTs();
       
       // Store purchased NFT info in localStorage
@@ -180,47 +136,91 @@ export default function MarketplacePage() {
     }
   };
 
+  const openPurchasePopup = (nft) => {
+    setSelectedNFT(nft);
+    setShowPopup(true);
+  };
+
+  const closePurchasePopup = () => {
+    setShowPopup(false);
+    setSelectedNFT(null);
+  };
+
+  const confirmPurchase = () => {
+    if (selectedNFT) {
+      handlePurchase(selectedNFT.tokenId, selectedNFT.price);
+    }
+    closePurchasePopup();
+  };
+
   return (
-    <Container
+    <motion.div className="container"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
     >
-      <Header
+      <motion.header className="header"
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ type: "spring", stiffness: 100 }}
       >
-        <Logo
+        <motion.div className="logo"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
           onClick={() => router.push('/home')}
         >
           <Image src={logo} alt="Zendesk" width={180} height={55} />
-        </Logo>
-        <Nav>
+        </motion.div>
+        <nav className="nav">
           <NavLinks />
-        </Nav>
-      </Header>
-      <MainContent>
-        <Title variants={itemVariants}>NFT Marketplace</Title>
+        </nav>
+      </motion.header>
+      <main className="main-content">
+        <motion.h1 className="title" variants={itemVariants}>NFT Marketplace</motion.h1>
+        <input 
+          className="search-bar"
+          placeholder="Search NFTs..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
         {isLoading ? (
-          <Loader />
+          <motion.div className="loader" variants={loaderVariants} animate="animate" />
         ) : error ? (
-          <ErrorMessage>{error}</ErrorMessage>
+          <p className="error-message">{error}</p>
         ) : (
-          <NFTGrid>
-            {nfts.map((nft) => (
+          <div className="nft-grid">
+            {filteredNFTs.map((nft) => (
               <NFTCard
                 key={nft.tokenId}
                 nft={nft}
-                onPurchase={() => handlePurchase(nft.tokenId, nft.price)}
+                onPurchase={() => openPurchasePopup(nft)}
               />
             ))}
-          </NFTGrid>
+          </div>
         )}
-      </MainContent>
-    </Container>
+      </main>
+      {showPopup && (
+        <div className="popup-overlay">
+          <div className="popup">
+            <h2>Purchase NFT</h2>
+            <p>Select token to purchase with:</p>
+            <select
+              value={selectedToken}
+              onChange={(e) => setSelectedToken(e.target.value)}
+            >
+              <option value="ETH">ETH</option>
+              <option value="USDC">USDC</option>
+              <option value="DAI">DAI</option>
+            </select>
+            <p>Price: {selectedNFT.price} {selectedToken}</p>
+            <div className="popup-buttons">
+              <button onClick={confirmPurchase}>Confirm Purchase</button>
+              <button onClick={closePurchasePopup}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </motion.div>
   );
 }

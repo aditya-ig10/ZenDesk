@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import { keyframes, Global, css } from '@emotion/react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+
 import Image from 'next/image';
 import logo from './logo.png';
 
@@ -204,13 +205,67 @@ const PopupText = styled.p`
   text-align: center;
 `;
 
+const Section = styled.section`
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 2rem;
+  color: white;
+
+  h2 {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    font-family: 'Playfair Display', serif;
+  }
+
+  p {
+    font-size: 1.2rem;
+    max-width: 600px;
+    font-family: 'Lora', serif;
+    margin-bottom: 1rem;
+  }
+
+  ul {
+    font-family: 'Lora', serif;
+    font-size: 1.1rem;
+    margin-left: 1.5rem;
+    margin-bottom: 1rem;
+  }
+`;
+
+const CourseCard = styled.div`
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  backdrop-filter: blur(10px);
+
+  h3 {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  p {
+    font-size: 1rem;
+  }
+`;
+
 export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showMetamaskPopup, setShowMetamaskPopup] = useState(false);
-  const { scrollYProgress } = useScroll();
   const router = useRouter();
+
+  const exploreRef = useRef(null);
+  const newsRef = useRef(null);
+  const developersRef = useRef(null);
+  const designersRef = useRef(null);
+  const buyingSellingRef = useRef(null);
+  const coursesRef = useRef(null);
+
+  const { scrollYProgress } = useScroll();
 
   const backgroundY = useTransform(scrollYProgress, [0, 1], ['0%', '100%']);
   const backgroundOpacity = useTransform(scrollYProgress, [0, 1], [1, 0.5]);
@@ -221,11 +276,21 @@ export default function Home() {
 
   useEffect(() => {
     setTimeout(() => setIsLoading(false), 3000);
-    const connectedAddress = localStorage.getItem('connectedAddress');
-    if (connectedAddress) {
-      setIsLoggedIn(true);
-    }
+    checkConnection();
   }, []);
+
+  const checkConnection = async () => {
+    if (typeof window.ethereum !== 'undefined') {
+      try {
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        if (accounts.length > 0) {
+          setIsLoggedIn(true);
+        }
+      } catch (error) {
+        console.error("Failed to check existing connection:", error);
+      }
+    }
+  };
 
   const handleLogin = async () => {
     setIsConnecting(true);
@@ -237,20 +302,29 @@ export default function Home() {
     }
 
     try {
-      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      await window.ethereum.request({ method: 'eth_requestAccounts' });
+      const accounts = await window.ethereum.request({ method: 'eth_accounts' });
       
       if (accounts.length > 0) {
         setIsLoggedIn(true);
         localStorage.setItem('connectedAddress', accounts[0]);
-        setTimeout(() => router.push('/home'), 2000);
+        router.push('/home');
       } else {
         console.error('No accounts found');
       }
     } catch (error) {
       console.error('Error during login:', error);
+      if (error.code === 4001) {
+        // User rejected the connection request
+        console.log("User rejected the connection request");
+      }
     } finally {
       setIsConnecting(false);
     }
+  };
+
+  const scrollToSection = (ref) => {
+    ref.current.scrollIntoView({ behavior: 'smooth' });
   };
 
   const contentVariants = {
@@ -341,16 +415,12 @@ export default function Home() {
           <Image src={logo} alt="Zendesk" width={180} height={55} />
         </Logo>
         <Nav>
-          {['Explore', 'News', 'Developers', 'Designers'].map((item) => (
-            <NavLink
-              key={item}
-              href="#"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              {item}
-            </NavLink>
-          ))}
+          <NavLink onClick={() => scrollToSection(exploreRef)}>Explore</NavLink>
+          <NavLink onClick={() => scrollToSection(newsRef)}>News</NavLink>
+          <NavLink onClick={() => scrollToSection(developersRef)}>Developers</NavLink>
+          <NavLink onClick={() => scrollToSection(designersRef)}>Designers</NavLink>
+          <NavLink onClick={() => scrollToSection(buyingSellingRef)}>Buy/Sell</NavLink>
+          <NavLink onClick={() => scrollToSection(coursesRef)}>Courses</NavLink>
         </Nav>
       </Header>
       <Container>
@@ -364,54 +434,98 @@ export default function Home() {
               ZenDesk.io
             </Title>
             <Subtitle variants={itemVariants}>
-              A collection of unique NFTs showcasing the world's most beautiful gradients for
-              your personal and commercial projects. Available at zero cost.
+              Revolutionizing NFT minting with zero gas fees. Our innovative platform leverages AdSense API to cover gas costs, making NFT creation accessible to all.
             </Subtitle>
             <Button
-              variants={itemVariants}
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={handleLogin}
-            >
-              {isConnecting ? "Connecting..." : isLoggedIn ? "Connected" : "Connect with MetaMask"}
-            </Button>
+        variants={itemVariants}
+        whileHover={{ scale: 1.03 }}
+        whileTap={{ scale: 0.97 }}
+        onClick={handleLogin}
+        disabled={isConnecting}
+      >
+        {isConnecting ? "Connecting..." : isLoggedIn ? "Connected" : "Connect with MetaMask"}
+      </Button>
           </TextContent>
         </MainContent>
-        {/* Add more content sections here for scrolling effect */}
-        <Section>
-          <h2>Explore Our Collection</h2>
-          <p>Discover a world of stunning gradients and unique NFTs.</p>
+        <Section ref={exploreRef}>
+          <h2>Explore ZenDesk.io</h2>
+          <p>Discover a world of gas-free NFT minting and unique digital assets:</p>
+          <ul>
+            <li>Browse our extensive gallery of user-created NFTs</li>
+            <li>Learn about our innovative gas-free minting process</li>
+            <li>Experiment with our gradient creation tools</li>
+            <li>Join challenges and competitions for NFT creators</li>
+          </ul>
+          <p>Start your journey into the world of accessible NFT creation today!</p>
         </Section>
-        <Section>
-          <h2>How It Works</h2>
-          <p>Learn about our platform and how to get started with ZenDesk.io.</p>
+        <Section ref={newsRef}>
+          <h2>Latest News</h2>
+          <p>Stay updated with the latest developments in the ZenDesk.io ecosystem:</p>
+          <ul>
+            <li>ZenDesk.io partners with major advertising networks to expand gas-free minting</li>
+            <li>New features added: Collaborative NFT creation and fractionalized ownership</li>
+            <li>ZenDesk.io community reaches 100,000 active users</li>
+            <li>Upcoming AMA session with our founder on the future of gas-free NFTs</li>
+          </ul>
+          <p>Follow our blog and social media channels for real-time updates!</p>
         </Section>
-        <Section>
-          <h2>Join Our Community</h2>
-          <p>Connect with other designers and developers passionate about beautiful gradients.</p>
+        <Section ref={developersRef}>
+          <h2>For Developers</h2>
+          <p>Build on top of ZenDesk.io's innovative gas-free infrastructure:</p>
+          <ul>
+            <li>Access our comprehensive API documentation</li>
+            <li>Integrate gas-free minting into your dApps</li>
+            <li>Contribute to our open-source projects on GitHub</li>
+            <li>Participate in hackathons and bounty programs</li>
+          </ul>
+          <p>Join our developer community and shape the future of NFT technology!</p>
+        </Section>
+        <Section ref={designersRef}>
+          <h2>For Designers</h2>
+          <p>Unleash your creativity with our suite of design tools:</p>
+          <ul>
+            <li>Use our intuitive gradient generator to create stunning backgrounds</li>
+            <li>Access a library of design elements optimized for NFTs</li>
+            <li>Collaborate with other designers on community projects</li>
+            <li>Showcase your work in our featured artists gallery</li>
+          </ul>
+          <p>Turn your artistic vision into reality with ZenDesk.io!</p>
+        </Section>
+        <Section ref={buyingSellingRef}>
+          <h2>Buying and Selling NFTs</h2>
+          <p>Learn how to navigate the world of NFT trading on ZenDesk.io:</p>
+          <ul>
+            <li>Create an account and set up your digital wallet</li>
+            <li>Browse our marketplace and discover unique NFTs</li>
+            <li>Place bids or buy NFTs instantly</li>
+            <li>List your own NFTs for sale with our gas-free minting process</li>
+            <li>Understand royalties and how creators earn from secondary sales</li>
+            <li>Learn about best practices for NFT valuation and investment</li>
+          </ul>
+          <p>Start your NFT trading journey with confidence on ZenDesk.io!</p>
+        </Section>
+        <Section ref={coursesRef}>
+          <h2>Courses</h2>
+          <p>Enhance your skills with our upcoming educational programs:</p>
+          <CourseCard>
+            <h3>NFT Creation Masterclass</h3>
+            <p>Learn the art and technology behind creating successful NFTs. Coming soon!</p>
+          </CourseCard>
+          <CourseCard>
+            <h3>Web3 Development Fundamentals</h3>
+            <p>Dive into blockchain technology and smart contract development. Coming soon!</p>
+          </CourseCard>
+          <CourseCard>
+            <h3>Digital Art for NFTs</h3>
+            <p>Master the techniques for creating eye-catching digital art for the NFT market. Coming soon!</p>
+          </CourseCard>
+          <CourseCard>
+            <h3>NFT Marketing and Promotion</h3>
+            <p>Learn strategies to effectively market and promote your NFT projects. Coming soon!</p>
+          </CourseCard>
+          <p>Stay tuned for course launch dates and early bird discounts!</p>
         </Section>
       </Container>
     </>
   );
 }
-
-const Section = styled.section`
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 2rem;
-  color: white;
-
-  h2 {
-    font-size: 3rem;
-    margin-bottom: 1rem;
-    font-family: 'Playfair Display', serif;
-  }
-
-  p {
-    font-size: 1.2rem;
-    max-width: 600px;
-    font-family: 'Lora', serif;
-  }
-`;
